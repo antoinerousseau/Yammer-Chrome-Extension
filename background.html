@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" dir="ltr">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+    <script type="text/javascript" src="https://assets.yammer.com/platform/yam.js"></script>
+    <title>Yammer</title>
+    <script type="text/javascript">
+        chrome.browserAction.onClicked.addListener(function(tab) {
+            chrome.tabs.getAllInWindow(undefined, function(tabs) {
+                for (var i = 0, tab; tab = tabs[i]; i++) {
+                    if (tab.url && tab.url.indexOf('www.yammer.com') > 0) {
+                        chrome.tabs.update(tab.id, {'selected': true});
+                        //chrome.tabs.executeScript(tab.id, {'code': 'window.location.reload();'});
+                        app.clickButton();
+                        return;
+                    }
+                }
+                chrome.tabs.create({'url': 'https://www.yammer.com/'});
+                app.clickButton();
+              });
+        });
+        yam.config({appId: "U89xSGlPUzC7IikBXJyFjw"});
+        app = {
+            checkTime: 60, //every minute
+            timeout: null,
+            load: function() {
+                yam.getLoginStatus(function(response) {
+                    if (response.authResponse) {
+                        app.loadTimeline();
+                    }
+                    else {
+                        yam.login(function (response) {
+                            if (response.authResponse) {
+                                app.loadTimeline();
+                            }
+                            else {
+                                console.log('user cancelled login');
+                            }
+                        });
+                    }
+                });
+            },
+            clickButton: function() {
+                chrome.browserAction.setBadgeText({'text': ''});
+                clearTimeout(app.timeout);
+                app.timeout = setTimeout(app.load, app.checkTime * 1000);
+            },
+            loadTimeline: function() {
+                if (!localStorage['yammer_last_seen_message_id']) {
+                    localStorage['yammer_last_seen_message_id'] = 0;
+                }
+                yam.request({
+                    'url': '/api/v1/messages/following.json?newer_than='+localStorage['yammer_last_seen_message_id'],
+                    'success': function(msg) {
+                        localStorage['yammer_last_seen_message_id'] = msg.meta.last_seen_message_id;
+                        if (msg.meta.unseen_message_count_following == 0) {
+                            chrome.browserAction.setBadgeText({'text': ''});
+                        }
+                        else {
+                            chrome.browserAction.setBadgeText({'text': ''+msg.meta.unseen_message_count_following});
+                        }
+                    },
+                    'error': function(msg) {
+                        console.log(msg);
+                    }
+                });
+                app.timeout = setTimeout(app.load, app.checkTime * 1000);
+            }
+        };
+        app.load();
+    </script>
+</head>
+</html>

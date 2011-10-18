@@ -1,0 +1,13 @@
+{
+  "name": "Yammer",
+  "version": "1.0.2",
+  "description": "Yammer Chrome Extension",
+  "browser_action": {
+    "default_icon": "icon.ico"
+  },
+  "background_page": "background.html",
+  "permissions": [
+    "tabs",
+    "https://www.yammer.com/"
+  ]
+}
